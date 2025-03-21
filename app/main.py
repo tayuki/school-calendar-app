@@ -461,4 +461,5 @@ def internal_server_error(e):
     return render_template('error.html', error='サーバーエラーが発生しました'), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3501, debug=True)
+    port = int(os.getenv('APP_PORT', 3501))
+    app.run(host='0.0.0.0', port=port, debug=True)

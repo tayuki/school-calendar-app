@@ -6,7 +6,7 @@ services:
     container_name: school-calendar-app
     restart: always
     ports:
-      - "3501:3501"
+      - "${APP_PORT:-3501}:${APP_PORT:-3501}"
     volumes:
       - ./app:/app/app
       - ./logs:/app/logs
