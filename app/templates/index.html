@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}学校プリントカレンダー登録 - ホーム{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2 class="card-title h5 m-0">学校プリントをカレンダーに登録</h2>
+            </div>
+            <div class="card-body">
+                {% if authenticated %}
+                    <p class="card-text">学校からのプリントをアップロードして、Googleカレンダーに予定を登録します。</p>
+                    
+                    <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="mt-4">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">プリントの画像をアップロード</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".jpg,.jpeg,.png,.gif,.pdf" required>
+                            <div class="form-text">対応ファイル形式: JPG, PNG, GIF, PDF (最大16MB)</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload"></i> アップロードして解析
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="card mt-4">
+                        <div class="card-header bg-light">
+                            <h3 class="card-title h6 m-0">使い方</h3>
+                        </div>
+                        <div class="card-body">
+                            <ol class="mb-0">
+                                <li>学校のプリントを写真に撮るか、スキャンします</li>
+                                <li>ファイル選択ボタンからその画像をアップロードします</li>
+                                <li>AIが自動的にテキストを認識し、予定情報を抽出します</li>
+                                <li>抽出された予定情報を確認・編集します</li>
+                                <li>カレンダーを選択して予定を登録します</li>
+                            </ol>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="mb-4">Googleアカウントでログインして、カレンダー連携を有効にしてください。</p>
+                        <a href="{{ url_for('auth') }}" class="btn btn-lg btn-primary">
+                            <i class="bi bi-google"></i> Googleアカウントでログイン
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+{% endblock %}

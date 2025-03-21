@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}学校プリントカレンダー登録 - 予定確認{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h2 class="card-title h5 m-0">抽出された予定の確認</h2>
+                <a href="{{ url_for('index') }}" class="btn btn-sm btn-light">
+                    <i class="bi bi-arrow-left"></i> 戻る
+                </a>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('register') }}" method="post" id="eventForm">
+                    <!-- カレンダー選択 -->
+                    <div class="mb-4">
+                        <label for="calendar_id" class="form-label">登録先カレンダーの選択</label>
+                        <select class="form-select" id="calendar_id" name="calendar_id" required>
+                            <option value="" selected disabled>カレンダーを選択してください</option>
+                            {% for calendar in calendars %}
+                                <option value="{{ calendar.id }}" {% if calendar.primary %}selected{% endif %}>
+                                    {{ calendar.summary }}
+                                    {% if calendar.primary %}(既定){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 抽出されたテキスト -->
+                    <div class="accordion mb-4" id="accordionOcrText">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOcrText">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOcrText" aria-expanded="false" aria-controls="collapseOcrText">
+                                    抽出されたテキスト
+                                </button>
+                            </h2>
+                            <div id="collapseOcrText" class="accordion-collapse collapse" aria-labelledby="headingOcrText" data-bs-parent="#accordionOcrText">
+                                <div class="accordion-body">
+                                    <pre class="bg-light p-3 rounded">{{ extracted_text }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- イベントリスト -->
+                    <h3 class="h5 mb-3">抽出された予定</h3>
+                    <p class="text-muted">内容を確認し、必要に応じて編集してください。登録する予定にチェックを入れてください。</p>
+
+                    {% if events %}
+                        <div class="list-group mb-4">
+                            {% for event in events %}
+                                <div class="list-group-item p-0">
+                                    <div class="row g-0">
+                                        <div class="col-auto p-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="select_{{ loop.index0 }}" name="selected_events" value="{{ loop.index0 }}" checked>
+                                                <label class="form-check-label" for="select_{{ loop.index0 }}"></label>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="accordion" id="eventAccordion{{ loop.index }}">
+                                                <div class="accordion-item border-0">
+                                                    <h2 class="accordion-header">
+                                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#eventCollapse{{ loop.index }}" aria-expanded="true">
+                                                            <div>
+                                                                <div class="fw-bold">{{ event.title }}</div>
+                                                                <div class="text-muted small">
+                                                                    {{ event.start_date }}
+                                                                    {% if not event.all_day and event.start_time %}
+                                                                        {{ event.start_time }}
+                                                                    {% else %}
+                                                                        (終日)
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    </h2>
+                                                    <div id="eventCollapse{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#eventAccordion{{ loop.index }}">
+                                                        <div class="accordion-body">
+                                                            <div class="mb-3">
+                                                                <label for="title_{{ loop.index0 }}" class="form-label">タイトル</label>
+                                                                <input type="text" class="form-control" id="title_{{ loop.index0 }}" name="title_{{ loop.index0 }}" value="{{ event.title }}" required>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="description_{{ loop.index0 }}" class="form-label">説明</label>
+                                                                <textarea class="form-control" id="description_{{ loop.index0 }}" name="description_{{ loop.index0 }}" rows="2">{{ event.description }}</textarea>
+                                                            </div>
+                                                            <div class="row mb-3">
+                                                                <div class="col">
+                                                                    <label for="start_date_{{ loop.index0 }}" class="form-label">開始日</label>
+                                                                    <input type="date" class="form-control" id="start_date_{{ loop.index0 }}" name="start_date_{{ loop.index0 }}" value="{{ event.start_date }}" required>
+                                                                </div>
+                                                                <div class="col">
+                                                                    <label for="end_date_{{ loop.index0 }}" class="form-label">終了日</label>
+                                                                    <input type="date" class="form-control" id="end_date_{{ loop.index0 }}" name="end_date_{{ loop.index0 }}" value="{{ event.end_date or event.start_date }}">
+                                                                </div>
+                                                            </div>
+                                                            <div class="form-check mb-3">
+                                                                <input class="form-check-input all-day-checkbox" type="checkbox" id="all_day_{{ loop.index0 }}" name="all_day_{{ loop.index0 }}" {% if event.all_day %}checked{% endif %}
+                                                                       data-index="{{ loop.index0 }}">
+                                                                <label class="form-check-label" for="all_day_{{ loop.index0 }}">
+                                                                    終日
+                                                                </label>
+                                                            </div>
+                                                            <div class="row mb-3 time-inputs" id="time_inputs_{{ loop.index0 }}" {% if event.all_day %}style="display: none;"{% endif %}>
+                                                                <div class="col">
+                                                                    <label for="start_time_{{ loop.index0 }}" class="form-label">開始時間</label>
+                                                                    <input type="time" class="form-control" id="start_time_{{ loop.index0 }}" name="start_time_{{ loop.index0 }}" value="{{ event.start_time }}">
+                                                                </div>
+                                                                <div class="col">
+                                                                    <label for="end_time_{{ loop.index0 }}" class="form-label">終了時間</label>
+                                                                    <input type="time" class="form-control" id="end_time_{{ loop.index0 }}" name="end_time_{{ loop.index0 }}" value="{{ event.end_time }}">
+                                                                </div>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="location_{{ loop.index0 }}" class="form-label">場所</label>
+                                                                <input type="text" class="form-control" id="location_{{ loop.index0 }}" name="location_{{ loop.index0 }}" value="{{ event.location or '' }}">
+                                                            </div>
+                                                            <div class="text-muted small">
+                                                                <i class="bi bi-info-circle"></i> 
+                                                                確信度: {{ "%.0f"|format(event.confidence * 100) }}%
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="window.history.back();">キャンセル</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-calendar-plus"></i> カレンダーに登録
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            予定情報が見つかりませんでした。別の画像をアップロードしてください。
+                        </div>
+                        <a href="{{ url_for('index') }}" class="btn btn-primary">ホームに戻る</a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+<style>
+    .accordion-button:not(.collapsed) {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    .accordion-button:focus {
+        box-shadow: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 終日チェックボックスの変更イベント
+    const allDayCheckboxes = document.querySelectorAll('.all-day-checkbox');
+    allDayCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const index = this.dataset.index;
+            const timeInputs = document.getElementById(`time_inputs_${index}`);
+            
+            if (this.checked) {
+                timeInputs.style.display = 'none';
+            } else {
+                timeInputs.style.display = 'flex';
+            }
+        });
+    });
+    
+    // 一括選択ボタン
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('input[name="selected_events"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
+    }
+    
+    // 一括解除ボタン
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('input[name="selected_events"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

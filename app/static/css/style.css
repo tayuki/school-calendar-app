@@ -1,0 +1,119 @@
+/* カスタムスタイル */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa;
+}
+
+.container {
+    flex: 1;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+/* カード */
+.card {
+    border-radius: 0.5rem;
+    border: none;
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+}
+
+/* フォーム */
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* ボタン */
+.btn {
+    border-radius: 0.25rem;
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* アコーディオン */
+.accordion-button {
+    padding: 1rem;
+}
+
+.accordion-body {
+    padding: 1rem;
+}
+
+/* リストグループ */
+.list-group-item {
+    padding: 0.75rem 1.25rem;
+}
+
+/* プログレスバー */
+.progress {
+    height: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* フラッシュメッセージ */
+.alert-success {
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+    color: #0f5132;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+    color: #842029;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+    color: #664d03;
+}
+
+.alert-info {
+    background-color: #cff4fc;
+    border-color: #b6effb;
+    color: #055160;
+}
+
+/* プリロード画像用スタイル */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.loading-text {
+    margin-top: 1rem;
+    font-weight: bold;
+}
