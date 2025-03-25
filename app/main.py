@@ -105,7 +105,8 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     """
-    画像アップロードとOCR処理
+    ファイルアップロードとOCR処理
+    画像とPDFの両方に対応
     """
     # 認証チェック
     if 'credentials' not in session:
@@ -142,11 +143,27 @@ def upload():
             flash('OCRサービスが設定されていません', 'error')
             return redirect(url_for('index'))
         
-        # 必要に応じて画像の前処理
-        file_path = ocr_processor.preprocess_image(file_path)
-        
-        # OCRでテキスト抽出
-        extracted_text = ocr_processor.process_image(file_path)
+        # ファイル形式によって処理を分岐
+        extracted_text = ""
+        if file_ext.lower() == 'pdf':
+            try:
+                # PDFファイルの処理
+                extracted_text = ocr_processor.process_pdf(file_path)
+            except ValueError as ve:
+                # PDFのページ数制限などのバリデーションエラー
+                flash(str(ve), 'error')
+                return redirect(url_for('index'))
+        else:
+            # 画像ファイルの処理
+            # 必要に応じて画像の前処理
+            try:
+                file_path = ocr_processor.preprocess_image(file_path)
+                # OCRでテキスト抽出
+                extracted_text = ocr_processor.process_image(file_path)
+            except Exception as e:
+                logger.error(f"画像処理中にエラーが発生しました: {str(e)}")
+                flash(f'画像処理中にエラーが発生しました: {str(e)}', 'error')
+                return redirect(url_for('index'))
         
         if not extracted_text:
             flash('テキストを抽出できませんでした', 'error')

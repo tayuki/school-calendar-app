@@ -1,6 +1,6 @@
 """
 OCR処理モジュール
-Google Cloud Vision APIを使用して画像からテキストを抽出します
+Google Cloud Vision APIを使用して画像やPDFファイルからテキストを抽出します
 """
 import logging
 import os
@@ -145,3 +145,100 @@ class OCRProcessor:
         except Exception as e:
             logger.error(f"画像の前処理中にエラーが発生しました: {e}")
             return image_path  # エラー時は元の画像を返す
+            
+    def process_pdf(self, pdf_path):
+        """
+        PDFファイルから直接テキストを抽出する
+        
+        Args:
+            pdf_path (str): PDFファイルのパス
+            
+        Returns:
+            str: 抽出されたテキスト
+            
+        Raises:
+            ValueError: PDFのページ数が5を超える場合
+            Exception: その他のエラー
+        """
+        if not self.client:
+            logger.error("Vision APIクライアントが初期化されていません")
+            return ""
+            
+        try:
+            # PDFのページ数を確認（制限を超えるかチェック）
+            self._check_pdf_page_count(pdf_path)
+            
+            # ファイルの内容を読み込む
+            with open(pdf_path, 'rb') as pdf_file:
+                content = pdf_file.read()
+            
+            # リクエストの作成
+            input_config = vision.InputConfig(
+                content=content,
+                mime_type='application/pdf'
+            )
+            
+            feature = vision.Feature(
+                type_=vision.Feature.Type.DOCUMENT_TEXT_DETECTION
+            )
+            
+            # ファイル全体に対する処理リクエストを作成
+            request = vision.AnnotateFileRequest(
+                input_config=input_config,
+                features=[feature]
+            )
+            
+            # バッチAPIを呼び出し
+            response = self.client.batch_annotate_files(requests=[request])
+            
+            # レスポンスから結果を取得
+            result = ""
+            for response_obj in response.responses:
+                for page in response_obj.responses:
+                    result += page.full_text_annotation.text + "\n\n"
+            
+            if not result.strip():
+                logger.warning("PDFからテキストが検出されませんでした")
+                return ""
+                
+            logger.info(f"PDFからのテキスト抽出に成功しました: {len(result)} 文字")
+            return result
+        
+        except ValueError as ve:
+            # PDFページ数の制限エラーをそのまま伝播
+            logger.error(f"PDF処理中にエラーが発生しました: {str(ve)}")
+            raise
+        except Exception as e:
+            logger.error(f"PDF処理中にエラーが発生しました: {str(e)}")
+            return ""
+    
+    def _check_pdf_page_count(self, pdf_path):
+        """
+        PDFのページ数を確認し、制限を超える場合はエラーを発生させる
+        
+        Args:
+            pdf_path (str): PDFファイルのパス
+            
+        Raises:
+            ValueError: PDFのページ数が5を超える場合
+        """
+        try:
+            import fitz  # PyMuPDF
+            
+            doc = fitz.open(pdf_path)
+            page_count = len(doc)
+            doc.close()
+            
+            logger.info(f"PDFのページ数: {page_count}")
+            
+            if page_count > 5:
+                raise ValueError(f"PDFのページ数が制限を超えています（{page_count}ページ/最大5ページ）")
+                
+            return page_count
+        except ImportError:
+            logger.warning("PyMuPDFがインストールされていません。PDFページ数のチェックをスキップします。")
+            # PyMuPDFがない場合は警告を出すだけで処理を続行
+            return None
+        except Exception as e:
+            logger.error(f"PDFのページ数確認中にエラーが発生しました: {str(e)}")
+            raise
