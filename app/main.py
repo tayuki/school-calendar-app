@@ -238,10 +238,10 @@ def register():
         flash('登録するイベントがありません', 'error')
         return redirect(url_for('index'))
     
-    # カレンダーIDの取得
-    calendar_id = request.form.get('calendar_id')
-    if not calendar_id:
-        flash('カレンダーが選択されていません', 'error')
+    # デフォルトカレンダーIDの取得
+    default_calendar_id = request.form.get('default_calendar_id')
+    if not default_calendar_id:
+        flash('デフォルトカレンダーが選択されていません', 'error')
         return redirect(url_for('confirm'))
     
     # イベントの選択状態を取得
@@ -260,6 +260,9 @@ def register():
             event['end_time'] = request.form.get(f'end_time_{i}', event.get('end_time', ''))
             event['location'] = request.form.get(f'location_{i}', event.get('location', ''))
             event['all_day'] = f'all_day_{i}' in request.form
+            
+            # 個別カレンダーIDを取得
+            event['calendar_id'] = request.form.get(f'calendar_id_{i}', '')
     
     # 選択されたイベントのみを抽出
     selected_events = [events[int(i)] for i in selected_indices]
@@ -274,20 +277,64 @@ def register():
         credentials = calendar_service.credentials_from_dict(credentials_dict)
         calendar_service.build_service(credentials)
         
-        # イベントの一括登録
-        results = calendar_service.batch_create_events(calendar_id, selected_events)
+        # カレンダー毎にイベントを件数を管理するディクショナリを初期化
+        calendar_count = {}
+        # カレンダーリストを取得して表示名をキャッシュ
+        calendars = calendar_service.get_calendar_list()
+        calendar_names = {cal['id']: cal['summary'] for cal in calendars}
+        
+        results = []
+        # イベントをカレンダー対象別に振り分け
+        for event in selected_events:
+            # カレンダーIDが設定されている場合はそれを使用、なければデフォルトを使用
+            calendar_id = event.get('calendar_id', '') or default_calendar_id
+            
+            # カレンダー名を記録
+            event['calendar_name'] = calendar_names.get(calendar_id, '不明なカレンダー')
+            
+            # イベント登録
+            try:
+                created_event = calendar_service.create_event(calendar_id, event)
+                if created_event:
+                    results.append({
+                        'success': True,
+                        'event': created_event,
+                        'original_data': event
+                    })
+                    # カレンダー別の登録件数をカウント
+                    if calendar_id in calendar_count:
+                        calendar_count[calendar_id] += 1
+                    else:
+                        calendar_count[calendar_id] = 1
+                else:
+                    results.append({
+                        'success': False,
+                        'error': 'イベントの作成に失敗しました',
+                        'original_data': event
+                    })
+            except Exception as e:
+                logger.error(f"個別イベント登録中にエラーが発生しました: {e}")
+                results.append({
+                    'success': False,
+                    'error': str(e),
+                    'original_data': event
+                })
         
         # 結果をセッションに保存
         session['register_results'] = results
+        session['calendar_names'] = calendar_names
         
         # 成功数をカウント
         success_count = sum(1 for r in results if r['success'])
         
-        flash(f'{len(selected_events)}件中{success_count}件のイベントがカレンダーに登録されました', 'success')
+        # カレンダー別の登録状況をメッセージに追加
+        calendar_info = '\n'.join([f"{calendar_names.get(cal_id, '不明なカレンダー')}: {count}件" for cal_id, count in calendar_count.items()])
+        flash(f'{len(selected_events)}件中{success_count}件のイベントが登録されました\n{calendar_info}', 'success')
+        
         return redirect(url_for('result'))
         
     except Exception as e:
-        logger.error(f"イベント登録中にエラーが発生しました: {e}")
+        logger.error(f"イベント登録処理中にエラーが発生しました: {e}", exc_info=True)
         flash(f'エラーが発生しました: {str(e)}', 'error')
         return redirect(url_for('confirm'))
 
@@ -301,7 +348,14 @@ def result():
         flash('登録結果がありません', 'error')
         return redirect(url_for('index'))
     
-    return render_template('result.html', results=session['register_results'])
+    # カレンダー情報をセッションから取得
+    calendar_names = session.get('calendar_names', {})
+    
+    return render_template(
+        'result.html', 
+        results=session['register_results'],
+        calendar_names=calendar_names
+    )
 
 @app.route('/auth')
 def auth():

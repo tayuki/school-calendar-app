@@ -14,10 +14,10 @@
             </div>
             <div class="card-body">
                 <form action="{{ url_for('register') }}" method="post" id="eventForm">
-                    <!-- カレンダー選択 -->
+                    <!-- デフォルトカレンダー選択 -->
                     <div class="mb-4">
-                        <label for="calendar_id" class="form-label">登録先カレンダーの選択</label>
-                        <select class="form-select" id="calendar_id" name="calendar_id" required>
+                        <label for="default_calendar_id" class="form-label">デフォルト登録先カレンダー</label>
+                        <select class="form-select" id="default_calendar_id" name="default_calendar_id" required>
                             <option value="" selected disabled>カレンダーを選択してください</option>
                             {% for calendar in calendars %}
                                 <option value="{{ calendar.id }}" {% if calendar.primary %}selected{% endif %}>
@@ -26,6 +26,7 @@
                                 </option>
                             {% endfor %}
                         </select>
+                        <div class="form-text">すべての予定のデフォルト登録先カレンダーです。個別に設定がない予定はこのカレンダーに登録されます。</div>
                     </div>
                     
                     <!-- 抽出されたテキスト -->
@@ -47,6 +48,16 @@
                     <!-- イベントリスト -->
                     <h3 class="h5 mb-3">抽出された予定</h3>
                     <p class="text-muted">内容を確認し、必要に応じて編集してください。登録する予定にチェックを入れてください。</p>
+                    
+                    <!-- 全選択・全解除ボタン -->
+                    <div class="mb-3">
+                        <button type="button" id="selectAllBtn" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="bi bi-check-all"></i> すべて選択
+                        </button>
+                        <button type="button" id="deselectAllBtn" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-x-lg"></i> すべて解除
+                        </button>
+                    </div>
 
                     {% if events %}
                         <div class="list-group mb-4">
@@ -117,6 +128,18 @@
                                                             <div class="mb-3">
                                                                 <label for="location_{{ loop.index0 }}" class="form-label">場所</label>
                                                                 <input type="text" class="form-control" id="location_{{ loop.index0 }}" name="location_{{ loop.index0 }}" value="{{ event.location or '' }}">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="calendar_id_{{ loop.index0 }}" class="form-label">登録先カレンダー</label>
+                                                                <select class="form-select individual-calendar" id="calendar_id_{{ loop.index0 }}" name="calendar_id_{{ loop.index0 }}">
+                                                                    <option value="">デフォルトカレンダーを使用</option>
+                                                                    {% for calendar in calendars %}
+                                                                        <option value="{{ calendar.id }}">
+                                                                            {{ calendar.summary }}
+                                                                            {% if calendar.primary %}(既定){% endif %}
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
                                                             </div>
                                                             <div class="text-muted small">
                                                                 <i class="bi bi-info-circle"></i> 
@@ -199,6 +222,28 @@ document.addEventListener('DOMContentLoaded', function() {
             const checkboxes = document.querySelectorAll('input[name="selected_events"]');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = false;
+            });
+        });
+    }
+    
+    // デフォルトカレンダーの変更イベント
+    const defaultCalendarSelect = document.getElementById('default_calendar_id');
+    if (defaultCalendarSelect) {
+        defaultCalendarSelect.addEventListener('change', function() {
+            // 現在選択されているカレンダーを取得
+            const selectedCalendarId = this.value;
+            
+            // 個別カレンダー選択のオプションを更新
+            const individualCalendars = document.querySelectorAll('.individual-calendar');
+            individualCalendars.forEach(select => {
+                // 現在選択されている値を保持
+                const currentValue = select.value;
+                
+                // すでに選択されているカレンダーは変更しない
+                if (currentValue === "") {
+                    // カスタムデータ属性を更新
+                    select.setAttribute('data-default', selectedCalendarId);
+                }
             });
         });
     }
